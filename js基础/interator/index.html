@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>interator-ES6迭代器</title>
+</head>
+<body>
+  <script>
+    /*
+      * 一个可迭代对用由可迭代协议[Symbol.iterator] 和 迭代器协议组成
+      * 可迭代协议：接收一个无参函数，返回值为一个符合迭代器协议的对象
+      * 迭代器协议：必须实现next()方法，其返回值类型是一个对象，该对象必须支持一下特性：
+      * { done：bollean, value: any } 
+    **/
+
+    // 1.目前内置可迭代对象有：String、Array、TypedArray、Map、Set，他们的原型对象都实现了@@iterator方法。例如：
+      Array.prototype[Symbol.iterator] // return: f values() { [native code] } 返回的就是内置迭代器方法
+
+    // 2.当一个对像是可迭代的，我们可以使用该对象的[Symbol.iterator]方法来按顺序访问对象中的可迭代的每一项，例如：
+      const arr = [1, 2, 3, 4, 5]
+      const arrIterator = arr[Symbol.iterator]()
+
+      arrIterator.next() // { value: 1, done: false }
+      arrIterator.next() // { value: 2, done: false }
+    
+
+    // 示例：自定义可迭代对象
+    const myIterator = {}
+    myIterator[Symbol.iterator] = function* () {
+      yield 1;
+      yield 2;
+      yield 2;
+    }
+    
+    console.log(
+      [...myIterator] // [1, 2, 3]
+    )
+    
+
+
+  </script>
+</body>
+</html>
