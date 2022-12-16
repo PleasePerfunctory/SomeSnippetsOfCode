@@ -14,12 +14,27 @@
  * 固定的计算对象：纯数值 和 标识符'[]'中间部分为一整体
  */
 
+const expression = '[指标1] - [电脑功率] * 10 / 2 + (3 * [显卡最大功率])'
 
-/**
- * 有限状态机设计
- * 状态的设定：init - 初始状态、 numerical - 数值状态、 operator - 操作符状态、 identifier - 标识符状态
- * 那么剔除初始化状态其他的几个状态都有至少开始和结束两个小状态
- * 所以全部的状态应该是：init、numericalStart、numericalEnd、operatorStart、operatorEnd、identifierStart和identifierEnd七个状态
- */
+const DFA = [
+  [1, 1, 3, 3, 5, 5, 7, 7, 9, 9, 'x', 12, 12, 'x'],
+  [0, 2, 'x', 2, 'x', 2, 'x', 2, 'x', 'x', 2, 7, 'x', 2],
+  ['x', 4, 'x', 6, 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
+  [0, 'x', 2, 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
+  ['x', 10, 'x', 13, 'x', 10, 'x', 13, 'x', 'x', 'x', 'x', 'x', 13],
+  [8, 'x', 11, 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
+  ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 9, 9, 'x', 12, 12, 'x'],
+  ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 10, 'x', 'x', 13, 'x'],
+  [0, 10, 2, 13, 'x', 10, 'x', 13, 'x', 'x', 10, 'x', 'x', 13]
+]
+
+const currentState = 0 // 当前状态
+
+const parenthesiStack = [] // 小括号栈
 
 
+
+
+for (let i in expression) {
+  console.log()
+}
