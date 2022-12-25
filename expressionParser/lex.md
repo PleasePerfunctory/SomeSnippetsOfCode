@@ -67,3 +67,220 @@
 | 8        | x     | x     | x     | x     | x     | x     | x     | x     | x     | 10    | x     | x     | Z     |x     |
 | 9        | 0     | 10    | 2     | Z     | x     | 10    | x     | Z     | x     | x     | 10    | x     | x     |Z     |
 
+> 好了，DFA的准备工作已经完成，我们再来完成代码部分
+```js
+const expression = '[指标1 ] + 3)'
+
+const DFA = [
+  [1, 1, 3, 3, 5, 5, 7, 7, 9, 9, 'x', 12, 12, 'x'],
+  [0, 2, 'x', 2, 'x', 2, 'x', 2, 'x', 'x', 2, 7, 'x', 2],
+  ['x', 4, 'x', 6, 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
+  [0, 'x', 2, 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
+  ['x', 10, 'x', 13, 'x', 10, 'x', 13, 'x', 'x', 'x', 'x', 'x', 13],
+  [8, 'x', 11, 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
+  ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 9, 9, 'x', 12, 12, 'x'],
+  ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 10, 'x', 'x', 13, 'x'],
+  [0, 10, 2, 13, 'x', 10, 'x', 13, 'x', 'x', 10, 'x', 'x', 13]
+]
+
+let currentState = 0 // 当前状态
+
+let isStartSignSymbol = false // 正负号开头
+
+const parenthesiStack = [] // 小括号栈
+
+const numericRE = /[0-9]/ // 数值正则
+
+const operatorRE = /[+\-*\/%]/ // 运算符正则
+
+const indicatorNameRe = /[a-zA-Z\u4e00-\u9fa5_]/ // 指标名称正则
+
+const spaceRE = /\s/
+
+
+
+// 识别器规则
+const identifierRules = [
+  {
+    code: 1,
+    ruleType: 'reg',
+    reg: numericRE
+  }, {
+    code: 2,
+    ruleType: 'reg',
+    reg: operatorRE
+  }, {
+    code: 3,
+    ruleType: 'judgment',
+    word: '.'
+  }, {
+    code: 4,
+    ruleType: 'judgment',
+    word: '('
+  }, {
+    code: 5,
+    ruleType: 'judgment',
+    word: ')'
+  }, {
+    code: 6,
+    ruleType: 'judgment',
+    word: '['
+  }, {
+    code: 7,
+    ruleType: 'reg',
+    reg: indicatorNameRe
+  }, {
+    code: 8,
+    ruleType: 'judgment',
+    word: ']'
+  }, {
+    code: 9,
+    ruleType: 'reg',
+    reg: spaceRE
+  }
+]
+
+/**
+ * 字符识别器
+ * @param {string} key 
+ * @return {number} code
+ */
+const identifier = (key) => {
+  let code = null
+  identifierRules.some(rule => {
+    let res = false
+    if (rule.ruleType === 'reg') {
+      res = rule.reg.test(key)
+    } else if (rule.ruleType === 'judgment') {
+      res = key === rule.word
+    }
+    code = res ? rule.code : code
+    return res
+  })
+  return code
+}
+
+for (let i in expression) {
+  const code = identifier(expression[i])
+
+  if (code === 4) {
+    isStartSignSymbol = false
+    parenthesiStack.push({
+      index: i,
+      char: '(',
+      code
+    })
+  }
+  if (code === 5) {parenthesiStack.pop()}
+
+  if (code === 2 && currentState === 0) {
+    if (expression[i] === '+' || expression[i] === '-') {
+      if (isStartSignSymbol) currentState = 'x'
+      else isStartSignSymbol = true
+    } else currentState = 'x'
+  }
+  currentState = DFA[code - 1][currentState] ?? 'x'
+}
+
+```
+
+### 显示具体的错误信息
+当我们输入一个不满足条件的表达式时，我们要做的可能不仅仅是验证表达式的格式是否正确。为了更好的用户体验，我们需要将表达式中的不满足的错误信息展示出来
+> 当前输入不满足规则时我们，我们只需要记录上一个状态然后更具当前输入类型判断即可，例如：上一个状态是`12`解析出来的表示是`12 + [指标`，然后当前输入的是一个空格不满足条件，我们即可抛出错误信息“'[]'运算单元中间不能出现汉字、大小写字母、数字和_以外的字符”。
+
+**我们将状态和输入类型组合枚举出来**
+
+```js
+// 定义错误类型
+const errorTypes = {
+  illegalCharError: (key) => `"${key}"再当前位置为非法字符`,
+  outOfPlaceError: (key) => `"${key}"不能出现再当前位置`,
+  operatorError: () => '运算符只能单个出现',
+  floatError: (key) => `当前位置只能是数字，但是接收到的是“${key}”`,
+  noContentError: () => '"[]"中不可为空',
+  spaceError: () => '空格不可出现再此处',
+  notAnExpression: () => '这不是一个表达式',
+  incompleteExpression: () => '表达式不完整',
+  incompleteFloatNumber: () => '表达式末尾浮点数不完整',
+  missingParenthesis1: () => '表达式结尾位置缺少“]”',
+  missingParenthesis2: (index) => `第${Number(index) + 1}字符位置,"("未闭合`,
+}
+const errorStateMap = {
+  0: {
+    2: errorTypes.illegalCharError,
+    3: errorTypes.outOfPlaceError,
+    7: errorTypes.illegalCharError
+  },
+  1: {
+    4: errorTypes.outOfPlaceError,
+    6: errorTypes.outOfPlaceError,
+    7: errorTypes.illegalCharError,
+    8: errorTypes.illegalCharError
+  },
+  2: {
+   2: errorTypes.operatorError,
+   3: errorTypes.outOfPlaceError,
+   5: errorTypes.outOfPlaceError,
+   7: errorTypes.illegalCharError,
+   8: errorTypes.outOfPlaceError,
+  },
+  4: {
+   2: errorTypes.floatError,
+   3: errorTypes.floatError,
+   4: errorTypes.floatError,
+   5: errorTypes.floatError,
+   6: errorTypes.floatError,
+   7: errorTypes.floatError,
+   8: errorTypes.outOfPlaceError,
+   9: errorTypes.illegalCharError
+  },
+  5: {
+    3: errorTypes.outOfPlaceError,
+    4: errorTypes.outOfPlaceError,
+    6: errorTypes.outOfPlaceError,
+    7: errorTypes.illegalCharError
+  },
+  8: {
+    2: errorTypes.illegalCharError,
+    3: errorTypes.illegalCharError,
+    4: errorTypes.illegalCharError,
+    5: errorTypes.illegalCharError,
+    6: errorTypes.illegalCharError,
+    8: errorTypes.noContentError,
+    9: errorTypes.spaceError,
+  },
+  9: {
+    2: errorTypes.illegalCharError,
+    3: errorTypes.illegalCharError,
+    4: errorTypes.illegalCharError,
+    5: errorTypes.illegalCharError,
+    6: errorTypes.illegalCharError,
+    9: errorTypes.spaceError,
+  },
+  10: {
+    1: errorTypes.illegalCharError,
+    3: errorTypes.illegalCharError,
+    4: errorTypes.illegalCharError,
+    6: errorTypes.illegalCharError,
+    8: errorTypes.illegalCharError
+  },
+  13: {
+    1: errorTypes.illegalCharError,
+    3: errorTypes.outOfPlaceError,
+    4: errorTypes.outOfPlaceError,
+    5: errorTypes.outOfPlaceError,
+    6: errorTypes.illegalCharError,
+    7: errorTypes.illegalCharError,
+    8: errorTypes.illegalCharError
+  }
+}
+
+Object.assign(errorStateMap, {
+  3: errorStateMap[1],
+  6: errorStateMap[4],
+  7: errorStateMap[5],
+  11: errorStateMap[8],
+  12: errorStateMap[9],
+})
+
+```
