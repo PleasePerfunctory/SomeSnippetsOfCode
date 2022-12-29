@@ -46,8 +46,6 @@ const indicatorNameRe = /[a-zA-Z\u4e00-\u9fa5_]/ // 指标名称正则
 
 const spaceRE = /\s/
 
-
-
 // 识别器规则
 const identifierRules = [
   {

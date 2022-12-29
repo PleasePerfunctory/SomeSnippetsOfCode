@@ -7,6 +7,12 @@
   <title>验证表达式</title>
 </head>
 <body>
-  <script src="./lex.js"></script> 验证表达式
+  <script src="./lex2.js"></script> 验证表达式
+  <script>
+    const expression = '23 + [指标1] * 5 + (20 -1) / 3'
+
+    const lex = new Lex()
+    lex.parse(expression)
+  </script>
 </body>
 </html>
